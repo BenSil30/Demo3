@@ -24,6 +24,9 @@ public class PlayerController : MonoBehaviour
 	public float LeftHandGrip;
 	public float RightHandGrip;
 
+	public bool LeftHandGripping;
+	public bool RightHandGripping;
+
 	private void Update()
 	{
 		MoveHands();
@@ -59,6 +62,7 @@ public class PlayerController : MonoBehaviour
 		var distanceFromElbow = Vector2.Distance(elbow.position, hand.position);
 		// float mappedValue = ((value - minValue) / (maxValue - minValue)) * (NewMax - NewMin) + NewMin;
 		var mappedValue = ((distanceFromElbow - 0.0f) / (MaxHandDistance - 0.0f)) * (1.0f - 0.0f) + 0.0f;
+		mappedValue = 1.0f - mappedValue;
 		switch (isLeftHand)
 		{
 			case true:
@@ -72,7 +76,7 @@ public class PlayerController : MonoBehaviour
 	}
 
 	/*
-	 * todo: Updates the hand grip strength by mapping it to TBD, also depends on if it's stretching but not by the amount of stretch
+	 * todo: Updates the hand grip strength by mapping it to TBD (time that the player has been gripping?), also depends on if it's stretching but not by the amount of stretch
 	 */
 
 	private void UpdateHandGripStrength(Transform hand, Transform elbow, bool isLeftHand)

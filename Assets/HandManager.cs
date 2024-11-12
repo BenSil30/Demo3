@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class HandManager : MonoBehaviour
@@ -14,6 +15,10 @@ public class HandManager : MonoBehaviour
 	public float maxHandDistance; // Maximum distance the hand can be from the elbow
 	public float StretchedDist; // Threshold distance where material changes
 
+	public bool IsOnHold;
+	public bool IsGripping;
+	public bool IsLeftHand;
+
 	private void Start()
 	{
 		// Ensure the LineRenderer component is attached
@@ -27,6 +32,7 @@ public class HandManager : MonoBehaviour
 
 		maxHandDistance = playerController.MaxHandDistance;
 		StretchedDist = playerController.StretchDistance;
+		IsOnHold = false;
 	}
 
 	private void Update()
@@ -36,6 +42,37 @@ public class HandManager : MonoBehaviour
 
 		// Update material based on the distance
 		UpdateMaterialBasedOnDistance();
+	}
+
+	private void UpdateGripStatus()
+	{
+		switch (IsLeftHand)
+		{
+			case true:
+				if (Input.GetKeyDown(KeyCode.LeftShift))
+				{
+					IsGripping = true;
+					playerController.LeftHandGripping = IsGripping;
+				}
+				else
+				{
+					IsGripping = false;
+					playerController.LeftHandGripping = IsGripping;
+				}
+				break;
+
+			case false:
+				if (Input.GetKeyDown(KeyCode.RightShift))
+				{
+					playerController.RightHandGripping = IsGripping;
+				}
+				else
+				{
+					IsGripping = false;
+					playerController.RightHandGripping = IsGripping;
+				}
+				break;
+		}
 	}
 
 	private void SetUpLineRenderer()
@@ -79,6 +116,14 @@ public class HandManager : MonoBehaviour
 		{
 			// If the hand is within the normal range
 			lineRenderer.material = normalMaterial;
+		}
+	}
+
+	private void OnTriggerEnter(Collider other)
+	{
+		if (other.CompareTag("Hold"))
+		{
+			IsOnHold = true;
 		}
 	}
 }

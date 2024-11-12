@@ -161,8 +161,8 @@ GameObject:
   - component: {fileID: 463499630}
   - component: {fileID: 463499631}
   - component: {fileID: 463499633}
-  - component: {fileID: 463499635}
   - component: {fileID: 463499634}
+  - component: {fileID: 463499635}
   m_Layer: 0
   m_Name: RightHand
   m_TagString: Untagged
@@ -509,8 +509,8 @@ GameObject:
   - component: {fileID: 800352083}
   - component: {fileID: 800352084}
   - component: {fileID: 800352086}
-  - component: {fileID: 800352088}
   - component: {fileID: 800352087}
+  - component: {fileID: 800352088}
   m_Layer: 0
   m_Name: LeftHand
   m_TagString: Untagged
@@ -1836,20 +1836,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 424a8401d16d2f94eb1654f3f98a1722, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  leftHand: {fileID: 800352083}
-  rightHand: {fileID: 463499630}
-  leftElbow: {fileID: 173305903}
-  rightElbow: {fileID: 1407480023}
-  handMoveSpeed: 5
-  maxHandDistance: 5
-  StretchDistance: 3
-  minMoveSpeed: 0
-  RightHandIsStretching: 0
+  LeftHand: {fileID: 800352083}
+  RightHand: {fileID: 463499630}
+  LeftElbow: {fileID: 173305903}
+  RightElbow: {fileID: 1407480023}
+  HandMoveSpeed: 5
+  MinMoveSpeed: 0
+  MaxHandDistance: 6
+  StretchDistance: 4
   LeftHandIsStretching: 0
-  RightHandStrength: 0
-  LeftHandStrength: 0
-  RightHandManager: {fileID: 0}
-  LeftHandManager: {fileID: 0}
+  RightHandIsStretching: 0
+  LeftArmStrength: 0
+  RightArmStrength: 0
+  LeftHandGrip: 0
+  RightHandGrip: 0
 --- !u!1 &1299868795
 GameObject:
   m_ObjectHideFlags: 0

@@ -15,8 +15,8 @@ public class HandManager : MonoBehaviour
 	private float maxHandDistance;
 	private float StretchedDist;
 
-	public bool IsOnHold;
-	public bool IsGripping;
+	public bool IsOnHold = false;
+	public bool IsGripping = false;
 
 	public float CurrentGripStrength;
 	public float MaxGripStrength;
@@ -59,21 +59,39 @@ public class HandManager : MonoBehaviour
 	private void UpdateGripStatus()
 	{
 		if (!playerController.CanGrab) return;
-		switch (IsLeftHand)
+		if (Input.GetKeyDown(KeyCode.LeftShift))
 		{
-			case true:
-				// Set IsGripping to true while 'Q' is held down; set to false when 'Q' is not held
-				IsGripping = Input.GetKey(KeyCode.LeftShift);
+			if (IsLeftHand)
+			{
+				IsGripping = !IsGripping;
+				if (!IsGripping) IsOnHold = false;
 				playerController.LeftHandGripping = IsGripping;
-				break;
-
-			default:
-				// Set IsGripping to true while 'E' is held down; set to false when 'E' is not held
-				IsGripping = Input.GetKey(KeyCode.RightShift);
-				playerController.RightHandGripping = IsGripping;
-				break;
+			}
 		}
-		IsOnHold = IsGripping;
+		if (Input.GetKeyDown(KeyCode.RightShift))
+		{
+			if (!IsLeftHand)
+			{
+				IsGripping = !IsGripping;
+				if (!IsGripping) IsOnHold = false;
+				playerController.RightHandGripping = IsGripping;
+			}
+		}
+		//switch (IsLeftHand)
+		//{
+		//	case true:
+		//		// Set IsGripping to true while 'Q' is held down; set to false when 'Q' is not held
+		//		IsGripping = Input.GetKeyDown(KeyCode.LeftShift);
+		//		playerController.LeftHandGripping = IsGripping;
+		//		break;
+
+		//	default:
+		//		// Set IsGripping to true while 'E' is held down; set to false when 'E' is not held
+		//		IsGripping = Input.GetKeyDown(KeyCode.RightShift);
+		//		playerController.RightHandGripping = IsGripping;
+		//		break;
+		//}
+		//IsOnHold = IsGripping;
 	}
 
 	private void UpdateGripStrength()
@@ -90,14 +108,18 @@ public class HandManager : MonoBehaviour
 				if (IsOnHold && CurrentGripStrength <= 0f)
 				{
 					Debug.Log("Hand has fallen off");
+					IsGripping = false;
+					IsOnHold = false;
 					switch (IsLeftHand)
 					{
 						case true:
 							playerController.HandFallenOff(true);
+							playerController.LeftHandGripping = IsGripping;
 							break;
 
 						case false:
 							playerController.HandFallenOff(false);
+							playerController.RightHandGripping = IsGripping;
 							break;
 					}
 				}
@@ -193,8 +215,6 @@ public class HandManager : MonoBehaviour
 				Debug.Log("here");
 				if (CurrentGripStrength > other.GetComponent<HoldController>().GripNeededForHold)
 				{
-					Debug.Log("nope here");
-
 					other.GetComponent<HoldController>().IsChalked = true;
 					IsOnHold = true;
 
@@ -232,6 +252,11 @@ public class HandManager : MonoBehaviour
 					}
 				}
 			}
+			else
+			{
+				IsOnHold = false;
+				Debug.Log("nope here");
+			}
 		}
 	}
 
@@ -240,6 +265,7 @@ public class HandManager : MonoBehaviour
 		if (other.gameObject.CompareTag("Hold"))
 		{
 			IsOnHold = false;
+			other.GetComponent<HoldController>().GripNeededForHold = other.GetComponent<HoldController>().GripTemp;
 		}
 	}
 }

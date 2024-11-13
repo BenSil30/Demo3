@@ -34,7 +34,16 @@ public class PlayerController : MonoBehaviour
 
 	public bool CanGrab = true;
 	public float FallResetSpeed;
+	private Vector3 startPosLHand;
+	private Vector3 startPosRHand;
 	private Vector3 startPos;
+
+	private void Start()
+	{
+		startPos = transform.position;
+		startPosLHand = LeftHand.position;
+		startPosRHand = RightHand.position;
+	}
 
 	private void Update()
 	{
@@ -193,7 +202,7 @@ public class PlayerController : MonoBehaviour
 			case false:
 				if (LeftHand.GetComponent<HandManager>().IsOnHold && LeftHand.GetComponent<HandManager>().IsGripping)
 				{
-					Debug.Log("Right hand currently gripping, player hasn't fallen yet");
+					Debug.Log("Left hand currently gripping, player hasn't fallen yet");
 				}
 				else
 				{
@@ -217,17 +226,23 @@ public class PlayerController : MonoBehaviour
 		// Move player quickly to starting position
 		float elapsedTime = 0f;
 		Vector3 currentPosition = transform.position;
+		Vector3 currentPositionL = LeftHand.transform.position;
+		Vector3 currentPositionR = RightHand.transform.position;
 
 		while (elapsedTime < 1f)
 		{
 			// Interpolate position back to starting point
 			transform.position = Vector3.Lerp(currentPosition, startPos, elapsedTime * FallResetSpeed);
+			RightHand.transform.position = Vector3.Lerp(currentPositionR, startPosRHand, elapsedTime * FallResetSpeed);
+			LeftHand.transform.position = Vector3.Lerp(currentPositionL, startPosLHand, elapsedTime * FallResetSpeed);
 			elapsedTime += Time.deltaTime;
 			yield return null;
 		}
 
 		// Ensure exact starting position
 		transform.position = startPos;
+		RightHand.transform.position = startPosRHand;
+		LeftHand.transform.position = startPosLHand;
 
 		// Enable grabbing after a short delay
 		yield return new WaitForSeconds(0.5f);
@@ -236,35 +251,59 @@ public class PlayerController : MonoBehaviour
 
 	public void LiftPlayer()
 	{
-		if (LeftHand.GetComponent<HandManager>().IsOnHold && RightHand.GetComponent<HandManager>().IsOnHold)
-		{
-			if (Input.GetKey(KeyCode.Space))
-			{
-				if (Vector2.Distance(RightHand.position, LeftHand.position) >= 2 * MaxHandDistance) return;
+		// Only execute if both hands are gripping
+		if (!LeftHand.GetComponent<HandManager>().IsOnHold || !RightHand.GetComponent<HandManager>().IsOnHold) return;
 
-				Rigidbody2D rg = GetComponent<Rigidbody2D>();
-				rg.constraints = RigidbodyConstraints2D.None;
-				rg.constraints = RigidbodyConstraints2D.FreezeRotation;
-				var reelSpeed = 5f;
-				if (RightHand.position.y > LeftHand.position.y)
-				{
-					var springJointRight = RightHand.GetComponent<SpringJoint2D>();
-					var distanceRight = springJointRight.distance - reelSpeed * Time.deltaTime;
-					springJointRight.distance = distanceRight;
-				}
-				else if (LeftHand.position.y > RightHand.position.y)
-				{
-					var springJointLeft = LeftHand.GetComponent<SpringJoint2D>();
-					var distanceLeft = springJointLeft.distance - reelSpeed * Time.deltaTime;
-					springJointLeft.distance = distanceLeft;
-				}
-				Debug.Log("Player lifting");
-			}
-			else
+		// Set a threshold for distance to stop lifting and the height difference to consider hands "even"
+		float stopDistanceThreshold = 2f;
+		float evenLevelThreshold = 0.1f;
+
+		// Check if the spacebar is held down
+		if (Input.GetKey(KeyCode.Space))
+		{
+			// Calculate the vertical difference between hands
+			float handHeightDifference = Mathf.Abs(RightHand.position.y - LeftHand.position.y);
+
+			// Do nothing if hands are close to the same height
+			if (handHeightDifference <= evenLevelThreshold)
 			{
-				Rigidbody2D rg = GetComponent<Rigidbody2D>();
-				rg.constraints = RigidbodyConstraints2D.FreezeAll;
+				Debug.Log("Hands are at an even level; not lifting.");
+				return;
 			}
+
+			// Determine which hand is higher
+			Transform targetHand = RightHand.position.y >= LeftHand.position.y ? RightHand : LeftHand;
+
+			// Calculate the distance between the player and the target hand
+			float distanceToTargetHand = Vector2.Distance(transform.position, targetHand.position);
+
+			// Stop applying force if the player is within the stop distance threshold
+			if (distanceToTargetHand <= stopDistanceThreshold)
+			{
+				Debug.Log("Player is close to the target hand; stopping lift.");
+				return;
+			}
+
+			// If not within the stop distance, apply a force toward the target hand
+			Rigidbody2D rg = GetComponent<Rigidbody2D>();
+			rg.constraints = RigidbodyConstraints2D.None;
+			rg.constraints = RigidbodyConstraints2D.FreezeRotation;
+
+			// Calculate the direction towards the target hand
+			Vector2 direction = (targetHand.position - transform.position).normalized;
+
+			// Apply an upward force towards the target hand
+			float liftForce = 5f;
+			rg.AddForce(direction * liftForce, ForceMode2D.Force);
+
+			Debug.Log("Player lifting towards the higher hand.");
+		}
+
+		// When the spacebar is released, freeze the player’s position
+		if (Input.GetKeyUp(KeyCode.Space))
+		{
+			Rigidbody2D rg = GetComponent<Rigidbody2D>();
+			rg.constraints = RigidbodyConstraints2D.FreezeAll;
 		}
 	}
 }

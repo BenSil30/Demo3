@@ -73,6 +73,7 @@ public class HandManager : MonoBehaviour
 				playerController.RightHandGripping = IsGripping;
 				break;
 		}
+		IsOnHold = IsGripping;
 	}
 
 	private void UpdateGripStrength()
@@ -86,20 +87,6 @@ public class HandManager : MonoBehaviour
 			if (IsGripping)
 			{
 				CurrentGripStrength -= GripDecayRate;
-				switch (IsLeftHand)
-				{
-					case true:
-						if (playerController.LeftArmStrength <= 0.5) CurrentGripStrength += (playerController.LeftArmStrength * CurrentGripStrength);
-						if (CurrentGripStrength >= MaxGripStrength) CurrentGripStrength = MaxGripStrength;
-						if (CurrentGripStrength <= 0f) CurrentGripStrength = 0f;
-						break;
-
-					case false:
-						if (playerController.RightArmStrength <= 0.5) CurrentGripStrength += (playerController.LeftArmStrength * CurrentGripStrength);
-						if (CurrentGripStrength >= MaxGripStrength) CurrentGripStrength = MaxGripStrength;
-						if (CurrentGripStrength <= 0f) CurrentGripStrength = 0f;
-						break;
-				}
 				if (IsOnHold && CurrentGripStrength <= 0f)
 				{
 					Debug.Log("Hand has fallen off");
@@ -125,6 +112,9 @@ public class HandManager : MonoBehaviour
 
 			TimeSinceLastDecay = 0f;
 		}
+
+		if (CurrentGripStrength > MaxGripStrength) CurrentGripStrength = MaxGripStrength;
+		if (CurrentGripStrength <= 0f) CurrentGripStrength = 0f;
 
 		switch (IsLeftHand)
 		{
@@ -194,23 +184,60 @@ public class HandManager : MonoBehaviour
 		this.GetComponent<SpriteRenderer>().color = tint;
 	}
 
-	private void OnTriggerEnter(Collider other)
+	private void OnTriggerStay2D(Collider2D other)
 	{
-		if (other.CompareTag("Hold"))
+		if (other.gameObject.CompareTag("Hold"))
 		{
 			if (IsGripping)
 			{
+				Debug.Log("here");
 				if (CurrentGripStrength > other.GetComponent<HoldController>().GripNeededForHold)
 				{
+					Debug.Log("nope here");
+
+					other.GetComponent<HoldController>().IsChalked = true;
 					IsOnHold = true;
+
+					switch (IsLeftHand)
+					{
+						//todo: properly store and reset the hold variables after modifying them
+						case true:
+							if (playerController.LeftHandIsStretching)
+							{
+								other.GetComponent<HoldController>().GripNeededForHold -=
+									other.GetComponent<HoldController>().GripNeededForHold * playerController.LeftArmStrength;
+								if (other.GetComponent<HoldController>().GripNeededForHold <= 0f) other.GetComponent<HoldController>().GripNeededForHold = 0f;
+							}
+							else
+							{
+								other.GetComponent<HoldController>().GripNeededForHold = other.GetComponent<HoldController>().GripTemp;
+							}
+							break;
+
+						case false:
+							if (playerController.RightHandIsStretching)
+							{
+								other.GetComponent<HoldController>().GripNeededForHold -=
+									other.GetComponent<HoldController>().GripNeededForHold *
+									playerController.RightArmStrength;
+								if (other.GetComponent<HoldController>().GripNeededForHold <= 0f)
+									other.GetComponent<HoldController>().GripNeededForHold = 0f;
+							}
+							else
+							{
+								other.GetComponent<HoldController>().GripNeededForHold =
+									other.GetComponent<HoldController>().GripTemp;
+							}
+							break;
+					}
 				}
 			}
 		}
 	}
 
-	private void OnTriggerExit(Collider other)
+	private void OnTriggerExit2D(Collider2D other)
 	{
-		if (other.CompareTag("Hold"))
+		if (other.gameObject.CompareTag("Hold"))
 		{
 			IsOnHold = false;
 		}

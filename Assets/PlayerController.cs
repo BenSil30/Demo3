@@ -236,35 +236,35 @@ public class PlayerController : MonoBehaviour
 
 	public void LiftPlayer()
 	{
-		//if (LeftHand.GetComponent<HandManager>().IsOnHold && RightHand.GetComponent<HandManager>().IsOnHold)
-		//{
-		if (Input.GetKey(KeyCode.Space))
+		if (LeftHand.GetComponent<HandManager>().IsOnHold && RightHand.GetComponent<HandManager>().IsOnHold)
 		{
-			Rigidbody2D rg = GetComponent<Rigidbody2D>();
-			rg.constraints = RigidbodyConstraints2D.None;
-			rg.constraints = RigidbodyConstraints2D.FreezeRotation;
+			if (Input.GetKey(KeyCode.Space))
+			{
+				if (Vector2.Distance(RightHand.position, LeftHand.position) >= 2 * MaxHandDistance) return;
 
-			if (Vector2.Distance(RightHand.position, LeftHand.position) >= 2 * MaxHandDistance) return;
-			var reelSpeed = 5f;
-			if (RightHand.position.y > LeftHand.position.y)
-			{
-				var springJointRight = RightHand.GetComponent<SpringJoint2D>();
-				var distanceRight = springJointRight.distance - reelSpeed * Time.deltaTime;
-				springJointRight.distance = distanceRight;
+				Rigidbody2D rg = GetComponent<Rigidbody2D>();
+				rg.constraints = RigidbodyConstraints2D.None;
+				rg.constraints = RigidbodyConstraints2D.FreezeRotation;
+				var reelSpeed = 5f;
+				if (RightHand.position.y > LeftHand.position.y)
+				{
+					var springJointRight = RightHand.GetComponent<SpringJoint2D>();
+					var distanceRight = springJointRight.distance - reelSpeed * Time.deltaTime;
+					springJointRight.distance = distanceRight;
+				}
+				else if (LeftHand.position.y > RightHand.position.y)
+				{
+					var springJointLeft = LeftHand.GetComponent<SpringJoint2D>();
+					var distanceLeft = springJointLeft.distance - reelSpeed * Time.deltaTime;
+					springJointLeft.distance = distanceLeft;
+				}
+				Debug.Log("Player lifting");
 			}
-			else if (LeftHand.position.y > RightHand.position.y)
+			else
 			{
-				var springJointLeft = LeftHand.GetComponent<SpringJoint2D>();
-				var distanceLeft = springJointLeft.distance - reelSpeed * Time.deltaTime;
-				springJointLeft.distance = distanceLeft;
+				Rigidbody2D rg = GetComponent<Rigidbody2D>();
+				rg.constraints = RigidbodyConstraints2D.FreezeAll;
 			}
-			Debug.Log("Player lifting");
 		}
-		else
-		{
-			Rigidbody2D rg = GetComponent<Rigidbody2D>();
-			rg.constraints = RigidbodyConstraints2D.FreezeAll;
-		}
-		//}
 	}
 }

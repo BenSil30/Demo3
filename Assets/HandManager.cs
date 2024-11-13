@@ -5,18 +5,26 @@ using UnityEngine;
 
 public class HandManager : MonoBehaviour
 {
-	public Transform elbow;            // Reference to the corresponding elbow
-	public LineRenderer lineRenderer;  // The LineRenderer component attached to the hand
-	public Material normalMaterial;    // Material when the hand is within normal distance
-	public Material stretchedMaterial; // Material when the hand is stretched beyond a certain distance
-	public Material maxDistanceMaterial; // Material when the hand is at the maximum distance
+	public Transform elbow;
+	public LineRenderer lineRenderer;
+	public Material normalMaterial;
+	public Material stretchedMaterial;
+	public Material maxDistanceMaterial;
 
 	public PlayerController playerController;
-	public float maxHandDistance; // Maximum distance the hand can be from the elbow
-	public float StretchedDist; // Threshold distance where material changes
+	private float maxHandDistance;
+	private float StretchedDist;
 
 	public bool IsOnHold;
 	public bool IsGripping;
+
+	public float CurrentGripStrength;
+	public float MaxGripStrength;
+	public float GripDecayRate;
+	public float GripRecoveryRate;
+	public float GripInterval;
+	private float TimeSinceLastDecay = 0f;
+
 	public bool IsLeftHand;
 
 	private void Start()
@@ -30,6 +38,7 @@ public class HandManager : MonoBehaviour
 		// Initialize LineRenderer settings
 		SetUpLineRenderer();
 
+		CurrentGripStrength = MaxGripStrength;
 		maxHandDistance = playerController.MaxHandDistance;
 		StretchedDist = playerController.StretchDistance;
 		IsOnHold = false;
@@ -41,36 +50,90 @@ public class HandManager : MonoBehaviour
 		UpdateLineRenderer();
 
 		// Update material based on the distance
-		UpdateMaterialBasedOnDistance();
+		UpdateArmColorBasedOnStretchAmount();
+		UpdateGripStatus();
+		UpdateGripStrength();
+		UpdateTintBasedOnGripStrength();
 	}
 
 	private void UpdateGripStatus()
 	{
+		if (!playerController.CanGrab) return;
 		switch (IsLeftHand)
 		{
 			case true:
-				if (Input.GetKeyDown(KeyCode.LeftShift))
+				// Set IsGripping to true while 'Q' is held down; set to false when 'Q' is not held
+				IsGripping = Input.GetKey(KeyCode.LeftShift);
+				playerController.LeftHandGripping = IsGripping;
+				break;
+
+			default:
+				// Set IsGripping to true while 'E' is held down; set to false when 'E' is not held
+				IsGripping = Input.GetKey(KeyCode.RightShift);
+				playerController.RightHandGripping = IsGripping;
+				break;
+		}
+	}
+
+	private void UpdateGripStrength()
+	{
+		// Accumulate time since last update
+		TimeSinceLastDecay += Time.deltaTime;
+
+		// Check if enough time has passed to update grip strength
+		if (TimeSinceLastDecay >= GripInterval)
+		{
+			if (IsGripping)
+			{
+				CurrentGripStrength -= GripDecayRate;
+				switch (IsLeftHand)
 				{
-					IsGripping = true;
-					playerController.LeftHandGripping = IsGripping;
+					case true:
+						if (playerController.LeftArmStrength <= 0.5) CurrentGripStrength += (playerController.LeftArmStrength * CurrentGripStrength);
+						if (CurrentGripStrength >= MaxGripStrength) CurrentGripStrength = MaxGripStrength;
+						if (CurrentGripStrength <= 0f) CurrentGripStrength = 0f;
+						break;
+
+					case false:
+						if (playerController.RightArmStrength <= 0.5) CurrentGripStrength += (playerController.LeftArmStrength * CurrentGripStrength);
+						if (CurrentGripStrength >= MaxGripStrength) CurrentGripStrength = MaxGripStrength;
+						if (CurrentGripStrength <= 0f) CurrentGripStrength = 0f;
+						break;
 				}
-				else
+				if (IsOnHold && CurrentGripStrength <= 0f)
 				{
-					IsGripping = false;
-					playerController.LeftHandGripping = IsGripping;
+					Debug.Log("Hand has fallen off");
+					switch (IsLeftHand)
+					{
+						case true:
+							playerController.HandFallenOff(true);
+							break;
+
+						case false:
+							playerController.HandFallenOff(false);
+							break;
+					}
 				}
+			}
+			else
+			{
+				if (CurrentGripStrength <= MaxGripStrength)
+				{
+					CurrentGripStrength += GripRecoveryRate;
+				}
+			}
+
+			TimeSinceLastDecay = 0f;
+		}
+
+		switch (IsLeftHand)
+		{
+			case true:
+				playerController.LeftHandGrip = CurrentGripStrength;
 				break;
 
 			case false:
-				if (Input.GetKeyDown(KeyCode.RightShift))
-				{
-					playerController.RightHandGripping = IsGripping;
-				}
-				else
-				{
-					IsGripping = false;
-					playerController.RightHandGripping = IsGripping;
-				}
+				playerController.RightHandGrip = CurrentGripStrength;
 				break;
 		}
 	}
@@ -96,7 +159,7 @@ public class HandManager : MonoBehaviour
 		}
 	}
 
-	private void UpdateMaterialBasedOnDistance()
+	private void UpdateArmColorBasedOnStretchAmount()
 	{
 		// Calculate the distance between the elbow and the hand
 		float distanceFromElbow = Vector2.Distance(elbow.position, transform.position);
@@ -119,11 +182,37 @@ public class HandManager : MonoBehaviour
 		}
 	}
 
+	private void UpdateTintBasedOnGripStrength()
+	{
+		// Calculate the percentage of grip strength
+		float gripPercentage = CurrentGripStrength / MaxGripStrength;
+
+		// Map the percentage to a color intensity, making it redder as the grip weakens
+		Color tint = new Color(.8f, gripPercentage, gripPercentage);
+
+		// Apply the color to the LineRenderer material
+		this.GetComponent<SpriteRenderer>().color = tint;
+	}
+
 	private void OnTriggerEnter(Collider other)
 	{
 		if (other.CompareTag("Hold"))
 		{
-			IsOnHold = true;
+			if (IsGripping)
+			{
+				if (CurrentGripStrength > other.GetComponent<HoldController>().GripNeededForHold)
+				{
+					IsOnHold = true;
+				}
+			}
+		}
+	}
+
+	private void OnTriggerExit(Collider other)
+	{
+		if (other.CompareTag("Hold"))
+		{
+			IsOnHold = false;
 		}
 	}
 }

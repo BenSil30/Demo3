@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 
@@ -21,11 +22,15 @@ public class PlayerController : MonoBehaviour
 	public float LeftArmStrength;
 	public float RightArmStrength;
 
+	public bool LeftHandGripping;
+	public bool RightHandGripping;
+
 	public float LeftHandGrip;
 	public float RightHandGrip;
 
-	public bool LeftHandGripping;
-	public bool RightHandGripping;
+	public bool CanGrab = true;
+	public float FallResetSpeed;
+	private Vector3 startPos;
 
 	private void Update()
 	{
@@ -46,69 +51,22 @@ public class PlayerController : MonoBehaviour
 
 		MoveHand(LeftHand, LeftElbow, leftDirection, true);
 		UpdateArmStrength(LeftHand, LeftElbow, true);
-		UpdateHandGripStrength(LeftHand, LeftElbow, true);
 
 		MoveHand(RightHand, RightElbow, rightDirection, false);
 		UpdateArmStrength(RightHand, RightElbow, false);
-		UpdateHandGripStrength(RightHand, RightElbow, false);
-	}
-
-	/*
-	 * Updates the arm strength by mapping it to the amount of distance from the elbow/aka stretch amount
-	 */
-
-	private void UpdateArmStrength(Transform hand, Transform elbow, bool isLeftHand)
-	{
-		var distanceFromElbow = Vector2.Distance(elbow.position, hand.position);
-		// float mappedValue = ((value - minValue) / (maxValue - minValue)) * (NewMax - NewMin) + NewMin;
-		var mappedValue = ((distanceFromElbow - 0.0f) / (MaxHandDistance - 0.0f)) * (1.0f - 0.0f) + 0.0f;
-		mappedValue = 1.0f - mappedValue;
-		switch (isLeftHand)
-		{
-			case true:
-				LeftArmStrength = mappedValue;
-				break;
-
-			case false:
-				RightArmStrength = mappedValue;
-				break;
-		}
-	}
-
-	/*
-	 * todo: Updates the hand grip strength by mapping it to TBD (time that the player has been gripping?), also depends on if it's stretching but not by the amount of stretch
-	 */
-
-	private void UpdateHandGripStrength(Transform hand, Transform elbow, bool isLeftHand)
-	{
-		switch (isLeftHand)
-		{
-			case true:
-				if (LeftHandIsStretching)
-				{
-					LeftHandGrip = 0.5f;
-				}
-				else
-				{
-					LeftHandGrip = 1.0f;
-				}
-				break;
-
-			case false:
-				if (RightHandIsStretching)
-				{
-					RightHandGrip = .5f;
-				}
-				else
-				{
-					RightHandGrip = 1.0f;
-				}
-				break;
-		}
 	}
 
 	private void MoveHand(Transform hand, Transform elbow, Vector2 direction, bool isLeftHand)
 	{
+		// don't move hands if they're gripping
+		if (isLeftHand)
+		{
+			if (LeftHandGripping && LeftHand.GetComponent<HandManager>().IsOnHold) return;
+		}
+		else
+		{
+			if (RightHandGripping && RightHand.GetComponent<HandManager>().IsOnHold) return;
+		}
 		// Calculate the target position based on input
 		Vector2 targetPosition = (Vector2)hand.position + direction * HandMoveSpeed * Time.deltaTime;
 
@@ -179,16 +137,106 @@ public class PlayerController : MonoBehaviour
 				// Apply side constraint again on constrained hand position
 				case true:
 					targetPosition = new Vector2(Mathf.Min(targetPosition.x, elbow.position.x), targetPosition.y);
-					LeftArmStrength = 0.0f;
 					break;
 
 				case false:
 					targetPosition = new Vector2(Mathf.Max(targetPosition.x, elbow.position.x), targetPosition.y);
-					RightArmStrength = 0.0f;
 					break;
 			}
 
 			hand.position = targetPosition;
+		}
+	}
+
+	/*
+	 * Updates the arm strength by mapping it to the amount of distance from the elbow/aka stretch amount
+	 */
+
+	private void UpdateArmStrength(Transform hand, Transform elbow, bool isLeftHand)
+	{
+		var distanceFromElbow = Vector2.Distance(elbow.position, hand.position);
+		// float mappedValue = ((value - minValue) / (maxValue - minValue)) * (NewMax - NewMin) + NewMin;
+		var mappedValue = ((distanceFromElbow - 0.0f) / (MaxHandDistance - 0.0f)) * (1.0f - 0.0f) + 0.0f;
+		mappedValue = 1.0f - mappedValue;
+		switch (isLeftHand)
+		{
+			case true:
+				LeftArmStrength = mappedValue;
+				break;
+
+			case false:
+				RightArmStrength = mappedValue;
+				break;
+		}
+	}
+
+	public void HandFallenOff(bool isLeftHand)
+	{
+		switch (isLeftHand)
+		{
+			case true:
+				if (RightHand.GetComponent<HandManager>().IsOnHold && RightHand.GetComponent<HandManager>().IsGripping)
+				{
+					Debug.Log("Right hand currently gripping, player hasn't fallen yet");
+				}
+				else
+				{
+					PlayerHasFallen();
+				}
+				break;
+
+			case false:
+				if (LeftHand.GetComponent<HandManager>().IsOnHold && LeftHand.GetComponent<HandManager>().IsGripping)
+				{
+					Debug.Log("Right hand currently gripping, player hasn't fallen yet");
+				}
+				else
+				{
+					PlayerHasFallen();
+				}
+				break;
+		}
+	}
+
+	public void PlayerHasFallen()
+	{
+		StartCoroutine(ResetPlayerPosition());
+		Debug.Log("Player fell");
+	}
+
+	private IEnumerator ResetPlayerPosition()
+	{
+		// Disable grabbing
+		CanGrab = false;
+
+		// Move player quickly to starting position
+		float elapsedTime = 0f;
+		Vector3 currentPosition = transform.position;
+
+		while (elapsedTime < 1f)
+		{
+			// Interpolate position back to starting point
+			transform.position = Vector3.Lerp(currentPosition, startPos, elapsedTime * FallResetSpeed);
+			elapsedTime += Time.deltaTime;
+			yield return null;
+		}
+
+		// Ensure exact starting position
+		transform.position = startPos;
+
+		// Enable grabbing after a short delay
+		yield return new WaitForSeconds(0.5f);
+		CanGrab = true;
+	}
+
+	public void LiftPlayer()
+	{
+		if (LeftHand.GetComponent<HandManager>().IsOnHold && RightHand.GetComponent<HandManager>().IsOnHold)
+		{
+			if (Input.GetKey(KeyCode.Space))
+			{
+				Debug.Log("Player lifting");
+			}
 		}
 	}
 }

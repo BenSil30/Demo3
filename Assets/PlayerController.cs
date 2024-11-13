@@ -1,11 +1,15 @@
 using System.Collections;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
 	public Transform LeftHand;
 	public Transform RightHand;
+
+	public Transform leftHandLiftLoc;
+	public Transform rightHandLiftLoc;
 
 	public Transform LeftElbow;
 	public Transform RightElbow;
@@ -35,6 +39,7 @@ public class PlayerController : MonoBehaviour
 	private void Update()
 	{
 		MoveHands();
+		LiftPlayer();
 	}
 
 	private void MoveHands()
@@ -231,12 +236,35 @@ public class PlayerController : MonoBehaviour
 
 	public void LiftPlayer()
 	{
-		if (LeftHand.GetComponent<HandManager>().IsOnHold && RightHand.GetComponent<HandManager>().IsOnHold)
+		//if (LeftHand.GetComponent<HandManager>().IsOnHold && RightHand.GetComponent<HandManager>().IsOnHold)
+		//{
+		if (Input.GetKey(KeyCode.Space))
 		{
-			if (Input.GetKey(KeyCode.Space))
+			Rigidbody2D rg = GetComponent<Rigidbody2D>();
+			rg.constraints = RigidbodyConstraints2D.None;
+			rg.constraints = RigidbodyConstraints2D.FreezeRotation;
+
+			if (Vector2.Distance(RightHand.position, LeftHand.position) >= 2 * MaxHandDistance) return;
+			var reelSpeed = 5f;
+			if (RightHand.position.y > LeftHand.position.y)
 			{
-				Debug.Log("Player lifting");
+				var springJointRight = RightHand.GetComponent<SpringJoint2D>();
+				var distanceRight = springJointRight.distance - reelSpeed * Time.deltaTime;
+				springJointRight.distance = distanceRight;
 			}
+			else if (LeftHand.position.y > RightHand.position.y)
+			{
+				var springJointLeft = LeftHand.GetComponent<SpringJoint2D>();
+				var distanceLeft = springJointLeft.distance - reelSpeed * Time.deltaTime;
+				springJointLeft.distance = distanceLeft;
+			}
+			Debug.Log("Player lifting");
 		}
+		else
+		{
+			Rigidbody2D rg = GetComponent<Rigidbody2D>();
+			rg.constraints = RigidbodyConstraints2D.FreezeAll;
+		}
+		//}
 	}
 }

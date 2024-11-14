@@ -6,14 +6,14 @@ public class HoldController : MonoBehaviour
 {
 	public float GripNeededForHold;
 	public float GripTemp;
-	public float DecayRateMultiplier;
+	public float ChalkedMultiplier;
 	public bool IsChalked = false;
-	public float ChalkGripCoeff;
 
 	// Start is called before the first frame update
 	private void Start()
 	{
 		GripTemp = GripNeededForHold;
+		ChalkedMultiplier = GripTemp - 1f;
 	}
 
 	// Update is called once per frame
@@ -26,8 +26,10 @@ public class HoldController : MonoBehaviour
 	{
 		if (IsChalked)
 		{
-			Color tint = new Color(.8f, .8f, .8f);
-			//GripNeededForHold = ChalkGripCoeff;
+			GetComponent<SpriteRenderer>().color = new Color(GetComponent<SpriteRenderer>().color.r,
+				GetComponent<SpriteRenderer>().color.g, GetComponent<SpriteRenderer>().color.b,
+				.5f);
+			GripTemp = ChalkedMultiplier;
 		}
 	}
 }

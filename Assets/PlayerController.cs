@@ -8,9 +8,6 @@ public class PlayerController : MonoBehaviour
 	public Transform LeftHand;
 	public Transform RightHand;
 
-	public Transform leftHandLiftLoc;
-	public Transform rightHandLiftLoc;
-
 	public Transform LeftElbow;
 	public Transform RightElbow;
 
@@ -28,9 +25,6 @@ public class PlayerController : MonoBehaviour
 
 	public bool LeftHandGripping;
 	public bool RightHandGripping;
-
-	public float LeftHandGrip;
-	public float RightHandGrip;
 
 	public bool CanGrab = true;
 	public float FallResetSpeed;
@@ -124,19 +118,6 @@ public class PlayerController : MonoBehaviour
 		{
 			// Apply the movement speed adjustment
 			targetPosition = (Vector2)hand.position + direction * currentMoveSpeed * Time.deltaTime;
-
-			switch (isLeftHand)
-			{
-				// Apply side constraint: prevent the left hand from crossing the right side of the left elbow
-				case true:
-					targetPosition = new Vector2(Mathf.Min(targetPosition.x, elbow.position.x), targetPosition.y);
-					break;
-				// Apply side constraint: prevent the right hand from crossing the left side of the right elbow
-				case false:
-					targetPosition = new Vector2(Mathf.Max(targetPosition.x, elbow.position.x), targetPosition.y);
-					break;
-			}
-
 			hand.position = targetPosition;  // Move the hand towards the target position
 		}
 
@@ -145,19 +126,6 @@ public class PlayerController : MonoBehaviour
 		{
 			Vector2 directionToElbow = (targetPosition - (Vector2)elbow.position).normalized;
 			targetPosition = (Vector2)elbow.position + directionToElbow * MaxHandDistance;
-
-			switch (isLeftHand)
-			{
-				// Apply side constraint again on constrained hand position
-				case true:
-					targetPosition = new Vector2(Mathf.Min(targetPosition.x, elbow.position.x), targetPosition.y);
-					break;
-
-				case false:
-					targetPosition = new Vector2(Mathf.Max(targetPosition.x, elbow.position.x), targetPosition.y);
-					break;
-			}
-
 			hand.position = targetPosition;
 		}
 	}

@@ -77,21 +77,6 @@ public class HandManager : MonoBehaviour
 				playerController.RightHandGripping = IsGripping;
 			}
 		}
-		//switch (IsLeftHand)
-		//{
-		//	case true:
-		//		// Set IsGripping to true while 'Q' is held down; set to false when 'Q' is not held
-		//		IsGripping = Input.GetKeyDown(KeyCode.LeftShift);
-		//		playerController.LeftHandGripping = IsGripping;
-		//		break;
-
-		//	default:
-		//		// Set IsGripping to true while 'E' is held down; set to false when 'E' is not held
-		//		IsGripping = Input.GetKeyDown(KeyCode.RightShift);
-		//		playerController.RightHandGripping = IsGripping;
-		//		break;
-		//}
-		//IsOnHold = IsGripping;
 	}
 
 	private void UpdateGripStrength()
@@ -137,17 +122,6 @@ public class HandManager : MonoBehaviour
 
 		if (CurrentGripStrength > MaxGripStrength) CurrentGripStrength = MaxGripStrength;
 		if (CurrentGripStrength <= 0f) CurrentGripStrength = 0f;
-
-		switch (IsLeftHand)
-		{
-			case true:
-				playerController.LeftHandGrip = CurrentGripStrength;
-				break;
-
-			case false:
-				playerController.RightHandGrip = CurrentGripStrength;
-				break;
-		}
 	}
 
 	private void SetUpLineRenderer()
